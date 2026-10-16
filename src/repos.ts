@@ -1,6 +1,6 @@
 import os from "node:os";
 import { Context, Effect, FileSystem, Layer, Path } from "effect";
-import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { GitCloneFailed, InvalidRepoFormat } from "#/errors.ts";
 
 const parseRepo = (repo: string) =>

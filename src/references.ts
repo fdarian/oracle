@@ -34,7 +34,7 @@ export const ReferencesFile = Schema.Struct({
 export type ReferencesFile = typeof ReferencesFile.Type;
 
 const referencesFilePath = Effect.gen(function* () {
-	return yield* Config.string("ORACLE_REFERENCES_PATH");
+	return yield* Config.String("ORACLE_REFERENCES_PATH");
 }).pipe(Effect.mapError(() => new ReferencesPathNotSet()));
 
 const ReferencesFileFromJson = Schema.fromJsonString(ReferencesFile);

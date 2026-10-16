@@ -1,6 +1,6 @@
 import { BunServices } from "@effect/platform-bun";
 import { Effect } from "effect";
-import { Command } from "effect/unstable/cli";
+import { Command } from "effect/cli";
 import { version } from "#/meta.ts";
 import { runtime } from "#/server/runtime.ts";
 import { mcp } from "./mcp";

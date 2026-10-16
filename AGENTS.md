@@ -3,7 +3,7 @@ Stdio MCP server (`oracle`) holding a curated registry of library docs reference
 ## Stack
 
 - pnpm (package manager), bun (runtime), TypeScript (`@total-typescript/tsconfig` bundler/no-dom/app)
-- Effect (`effect`, `@effect/platform-bun`) for all logic; `effect` and `@effect/platform-bun` are pinned to an exact `4.0.0-rc.109` (the `effect/unstable/*` APIs differ in 4.0.5+), with `@effect/platform-node-shared` overridden to match in `pnpm-workspace.yaml`
+- Effect (`effect`, `@effect/platform-bun`) for all logic; `effect` and `@effect/platform-bun` are pinned to an exact `4.0.5`
 - `@modelcontextprotocol/sdk` for the MCP server (stdio transport); zod for tool input schemas; Effect Schema for the references file
 - Path alias `#/*` → `src/*`; kebab-case filenames
 
