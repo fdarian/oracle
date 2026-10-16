@@ -10,6 +10,8 @@
 	},
 	"dependencies": {
 		"@effect/platform-bun": "4.0.5",
+		"@effect/sql-libsql": "4.0.5",
+		"@libsql/client": "^0.18.0",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"@toon-format/toon": "^2.3.0",
 		"effect": "4.0.5",

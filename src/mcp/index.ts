@@ -28,4 +28,8 @@ export const startMcpStdio = Effect.gen(function* () {
 
 	const transport = new StdioServerTransport();
 	yield* Effect.promise(() => server.connect(transport));
+	// Keeps the command running until the client disconnects; runMain exits once it returns.
+	yield* Effect.callback<void>((resume) => {
+		server.server.onclose = () => resume(Effect.void);
+	});
 });
