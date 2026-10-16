@@ -1,4 +1,4 @@
-Claude Code plugin (also its own marketplace) that ships `oracle`: a stdio MCP server holding a curated registry of library docs references (docs domains, GitHub repo, markdown notes), plus an `oracle` subagent that consults it before searching docs via exa or reading cloned source.
+Stdio MCP server (`oracle`) holding a curated registry of library docs references (docs domains, GitHub repo, markdown notes), plus an `oracle` Claude Code subagent that consults it before searching docs via exa or reading cloned source.
 
 ## Stack
 
@@ -7,18 +7,14 @@ Claude Code plugin (also its own marketplace) that ships `oracle`: a stdio MCP s
 - `@modelcontextprotocol/sdk` for the MCP server (stdio transport); zod for tool input schemas; Effect Schema for the references file
 - Path alias `#/*` → `src/*`; kebab-case filenames
 
-## Plugin layout
+## Agent
 
-Repo root is both the plugin root and the marketplace root.
-
-- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` — no `version` field, so the commit SHA is the version
-- `.mcp.json` — runs `bun ${CLAUDE_PLUGIN_ROOT}/dist/oracle.js mcp stdio`
-- `agents/oracle.md` — the subagent. Plugin agents can't declare `mcpServers`, so tools are referenced by their plugin names `mcp__plugin_oracle_oracle__<tool>`; keep them in sync with the tool names registered in `src/mcp/tools/`
+`agents/oracle.md` is the subagent, copied by users into `~/.claude/agents/`. Its `mcpServers` frontmatter launches `bun run <repo>/dist/oracle.js mcp stdio` with `ORACLE_REFERENCES_PATH`; the two paths are placeholders the user replaces. Tool names in the body are the bare names registered in `src/mcp/tools/`; keep them in sync.
 
 ## Gotchas
 
-- **`dist/oracle.js` is committed and is what the plugin runs** (plugin installs have no `node_modules`). Run `pnpm build` and commit `dist/` in the same commit as any `src/` change.
-- Data lives at `${CLAUDE_PLUGIN_DATA}/references.json` (`~/.claude/plugins/data/oracle-oracle/`). `ORACLE_REFERENCES_PATH` is required, with no default; a missing file is treated as empty state, not an error.
+- **`dist/oracle.js` is committed and is what the agent runs** (a clone has no `node_modules`). Run `pnpm build` and commit `dist/` in the same commit as any `src/` change.
+- `ORACLE_REFERENCES_PATH` is required, with no default; a missing file is treated as empty state, not an error.
 - The JSON store is slated to move to SQLite; don't build features that depend on the file format.
 - Biome ignores `dist/`.
 
@@ -26,7 +22,6 @@ Repo root is both the plugin root and the marketplace root.
 
 - `pnpm check:type`, `pnpm check:lint`, `pnpm format`, `pnpm build`
 - `ORACLE_REFERENCES_PATH=/tmp/references.json bun run entries/cli.ts mcp stdio` — run the server from source over stdio
-- `claude plugin validate . --strict` — validate the manifests
 
 ## Architecture
 
