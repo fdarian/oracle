@@ -9,10 +9,10 @@
 		"format": "biome check --write"
 	},
 	"dependencies": {
-		"@effect/platform-bun": "4.0.0-rc.109",
+		"@effect/platform-bun": "4.0.5",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"@toon-format/toon": "^2.3.0",
-		"effect": "4.0.0-rc.109",
+		"effect": "4.0.5",
 		"zod": "^3.24.0"
 	},
 	"devDependencies": {
