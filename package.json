@@ -4,7 +4,6 @@
 	"private": true,
 	"packageManager": "pnpm@12.9.0",
 	"scripts": {
-		"build": "bun build entries/cli.ts --target=bun --outfile dist/oracle.js",
 		"check:type": "tsc --noEmit",
 		"check:lint": "biome check",
 		"format": "biome check --write"

@@ -7,7 +7,7 @@ mcpServers:
   - oracle:
       type: stdio
       command: bun
-      args: ["run", "/path/to/oracle/dist/oracle.js", "mcp", "stdio"]
+      args: ["run", "/path/to/oracle/entries/cli.ts", "mcp", "stdio"]
       env:
         ORACLE_REFERENCES_PATH: "/path/to/references.json"
 ---

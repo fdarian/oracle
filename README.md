@@ -8,12 +8,13 @@ Requires [bun](https://bun.sh) on your `PATH` and the [exa](https://exa.ai) MCP 
 
 ```sh
 git clone https://github.com/fdarian/oracle
-cp oracle/agents/oracle.md ~/.claude/agents/oracle.md
+cd oracle && pnpm install
+cp agents/oracle.md ~/.claude/agents/oracle.md
 ```
 
 Then edit `~/.claude/agents/oracle.md` and replace the two placeholder paths in the `mcpServers` frontmatter with absolute paths:
 
-- `/path/to/oracle/dist/oracle.js` — the `dist/oracle.js` in your clone (committed, no install step needed)
+- `/path/to/oracle` — your clone
 - `/path/to/references.json` — where your reference list is stored; a missing file is an empty list
 
 Restart Claude Code.
@@ -25,14 +26,12 @@ Ask Claude a library question and it delegates to the `oracle` agent, or call it
 ## Development
 
 ```sh
-pnpm install
 pnpm format        # biome
 pnpm check:type
 pnpm check:lint
-pnpm build         # bundles entries/cli.ts to dist/oracle.js
 ```
 
-The agent runs the committed `dist/oracle.js`, so rebuild and commit it with every `src/` change. See [AGENTS.md](./AGENTS.md) for the layout.
+See [AGENTS.md](./AGENTS.md) for the layout.
 
 ## License
 

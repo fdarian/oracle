@@ -2,33 +2,31 @@ Stdio MCP server (`oracle`) holding a curated registry of library docs reference
 
 ## Stack
 
-- pnpm (package manager), bun (runtime and bundler), TypeScript (`@total-typescript/tsconfig` bundler/no-dom/app)
+- pnpm (package manager), bun (runtime), TypeScript (`@total-typescript/tsconfig` bundler/no-dom/app)
 - Effect (`effect`, `@effect/platform-bun`) for all logic; `effect` and `@effect/platform-bun` are pinned to an exact `4.0.0-rc.109` (the `effect/unstable/*` APIs differ in 4.0.5+), with `@effect/platform-node-shared` overridden to match in `pnpm-workspace.yaml`
 - `@modelcontextprotocol/sdk` for the MCP server (stdio transport); zod for tool input schemas; Effect Schema for the references file
 - Path alias `#/*` → `src/*`; kebab-case filenames
 
 ## Agent
 
-`agents/oracle.md` is the subagent, copied by users into `~/.claude/agents/`. Its `mcpServers` frontmatter launches `bun run <repo>/dist/oracle.js mcp stdio` with `ORACLE_REFERENCES_PATH`; the two paths are placeholders the user replaces. Tool names in the body are the bare names registered in `src/mcp/tools/`; keep them in sync.
+`agents/oracle.md` is the subagent, copied by users into `~/.claude/agents/`. Its `mcpServers` frontmatter launches `bun run <repo>/entries/cli.ts mcp stdio` with `ORACLE_REFERENCES_PATH`; the two paths are placeholders the user replaces. Tool names in the body are the bare names registered in `src/mcp/tools/`; keep them in sync.
 
 ## Gotchas
 
-- **`dist/oracle.js` is committed and is what the agent runs** (a clone has no `node_modules`). Run `pnpm build` and commit `dist/` in the same commit as any `src/` change.
 - `ORACLE_REFERENCES_PATH` is required, with no default; a missing file is treated as empty state, not an error.
 - The JSON store is slated to move to SQLite; don't build features that depend on the file format.
-- Biome ignores `dist/`.
 
 ## Dev
 
-- `pnpm check:type`, `pnpm check:lint`, `pnpm format`, `pnpm build`
+- `pnpm check:type`, `pnpm check:lint`, `pnpm format`
 - `ORACLE_REFERENCES_PATH=/tmp/references.json bun run entries/cli.ts mcp stdio` — run the server from source over stdio
 
 ## Architecture
 
-- `entries/cli.ts` — bundle entry; imports `src/cli/main.ts` (Effect CLI: `oracle mcp stdio`, `--version`)
+- `entries/cli.ts` — CLI entry; imports `src/cli/main.ts` (Effect CLI: `oracle mcp stdio`, `--version`)
 - `src/mcp/index.ts` — constructs the McpServer, registers the 8 tools in `src/mcp/tools/`, connects StdioServerTransport
 - `src/references.ts` — Effect Schema for the references file + `ReferencesService` (load/save/search/upsert/delete/readNote/writeNote/editNote)
 - `src/repos.ts` — `ReposService`: clones `org/name` GitHub repos under `$TMPDIR/github/` and reports HEAD/branch
 - `src/errors.ts` — tagged errors
 - `src/server/runtime.ts` — shared ManagedRuntime
-- `src/meta.ts` — version, read from `package.json` via JSON import so it survives bundling
+- `src/meta.ts` — version, read from `package.json` via JSON import
