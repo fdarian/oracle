@@ -1,0 +1,25 @@
+{
+	"name": "oracle",
+	"version": "0.1.0",
+	"private": true,
+	"packageManager": "pnpm@12.9.0",
+	"scripts": {
+		"build": "bun build entries/cli.ts --target=bun --outfile dist/oracle.js",
+		"check:type": "tsc --noEmit",
+		"check:lint": "biome check",
+		"format": "biome check --write"
+	},
+	"dependencies": {
+		"@effect/platform-bun": "4.0.0-rc.109",
+		"@modelcontextprotocol/sdk": "^1.29.0",
+		"@toon-format/toon": "^2.3.0",
+		"effect": "4.0.0-rc.109",
+		"zod": "^3.24.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.1",
+		"@total-typescript/tsconfig": "^1.0.4",
+		"@types/node": "^25.9.3",
+		"typescript": "^7.0.2"
+	}
+}

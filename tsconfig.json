@@ -1,0 +1,10 @@
+{
+	"extends": "@total-typescript/tsconfig/bundler/no-dom/app",
+	"compilerOptions": {
+		"allowImportingTsExtensions": true,
+		"noErrorTruncation": true,
+		"paths": { "#/*": ["./src/*"] },
+		"types": ["node"]
+	},
+	"include": ["entries/**/*", "src/**/*"]
+}
