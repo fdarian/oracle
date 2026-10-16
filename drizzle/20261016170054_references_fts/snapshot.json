@@ -1,0 +1,147 @@
+{
+	"id": "98f35ebf-3ffd-4aa7-af07-d68e5ac509be",
+	"prevIds": ["e47d773c-e4fc-4406-99be-b11db4fd1668"],
+	"version": "7",
+	"dialect": "sqlite",
+	"ddl": [
+		{
+			"name": "notes",
+			"entityType": "tables"
+		},
+		{
+			"name": "references",
+			"entityType": "tables"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": true,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "notes"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "referenceId",
+			"entityType": "columns",
+			"table": "notes"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "path",
+			"entityType": "columns",
+			"table": "notes"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "content",
+			"entityType": "columns",
+			"table": "notes"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": true,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "references"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "references"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "repo",
+			"entityType": "columns",
+			"table": "references"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "domains",
+			"entityType": "columns",
+			"table": "references"
+		},
+		{
+			"columns": ["referenceId"],
+			"tableTo": "references",
+			"columnsTo": ["id"],
+			"onUpdate": "NO ACTION",
+			"onDelete": "NO ACTION",
+			"nameExplicit": false,
+			"name": "fk_notes_referenceId_references_id_fk",
+			"entityType": "fks",
+			"table": "notes"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "notes_pk",
+			"table": "notes",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "references_pk",
+			"table": "references",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "referenceId",
+					"isExpression": false
+				},
+				{
+					"value": "path",
+					"isExpression": false
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "notes_reference_id_path_unique",
+			"entityType": "indexes",
+			"table": "notes"
+		},
+		{
+			"columns": ["name"],
+			"nameExplicit": false,
+			"name": "references_name_unique",
+			"entityType": "uniques",
+			"table": "references"
+		}
+	],
+	"renames": []
+}
