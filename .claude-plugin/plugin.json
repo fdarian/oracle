@@ -1,0 +1,7 @@
+{
+	"name": "oracle",
+	"description": "Curated library-docs reference list as an MCP server, plus an oracle subagent that answers 'how does library X work' questions from the right docs domain or cloned source.",
+	"author": { "name": "Farrel Darian" },
+	"repository": "https://github.com/fdarian/oracle",
+	"license": "MIT"
+}
