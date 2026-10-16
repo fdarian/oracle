@@ -3,8 +3,8 @@ import { Command } from "effect/cli";
 import {
 	bootstrapReplica,
 	DatabaseConfig,
+	databaseAt,
 	replicaIndexPath,
-	sqlLayer,
 } from "#/database.ts";
 import { BackupExists, SyncUrlNotSet } from "#/errors.ts";
 import { ReferencesService } from "#/references.ts";
@@ -45,7 +45,7 @@ export const enable = Command.make("enable", {}, () =>
 			}).pipe(
 				Effect.provide(
 					ReferencesService.layer.pipe(
-						Layer.provide(sqlLayer({ url: `file:${config.path}` })),
+						Layer.provide(databaseAt({ url: `file:${config.path}` })),
 					),
 					{ local: true },
 				),
@@ -57,7 +57,7 @@ export const enable = Command.make("enable", {}, () =>
 			}).pipe(
 				Effect.provide(
 					ReferencesService.layer.pipe(
-						Layer.provide(sqlLayer({ url: syncUrl, authToken })),
+						Layer.provide(databaseAt({ url: syncUrl, authToken })),
 					),
 					{ local: true },
 				),

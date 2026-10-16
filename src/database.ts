@@ -1,7 +1,11 @@
-import { LibsqlClient, LibsqlMigrator } from "@effect/sql-libsql";
+import { fileURLToPath } from "node:url";
+import { LibsqlClient } from "@effect/sql-libsql";
 import { type Client, createClient } from "@libsql/client";
+import * as LibsqlDrizzle from "drizzle-orm/effect-libsql";
+import { migrate } from "drizzle-orm/effect-libsql/migrator";
 import {
 	Config,
+	Context,
 	Effect,
 	FileSystem,
 	Layer,
@@ -9,7 +13,6 @@ import {
 	Path,
 	Redacted,
 } from "effect";
-import { SqlClient } from "effect/sql";
 import {
 	DatabasePathNotSet,
 	ReplicaNeedsSyncUrl,
@@ -30,40 +33,25 @@ export const DatabaseConfig = Effect.gen(function* () {
 export const replicaIndexPath = (dbPath: string) =>
 	`${dbPath}-client_wal_index`;
 
-const migrations = LibsqlMigrator.run({
-	loader: LibsqlMigrator.fromRecord({
-		"0001_init": Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			yield* sql`CREATE TABLE reference (
-				name TEXT PRIMARY KEY,
-				repo TEXT,
-				domains TEXT NOT NULL
-			) STRICT`;
-			yield* sql`CREATE TABLE note (
-				reference_name TEXT NOT NULL,
-				path TEXT NOT NULL,
-				content TEXT NOT NULL,
-				PRIMARY KEY (reference_name, path)
-			) STRICT`;
-			// Trigram keeps the old case-insensitive substring semantics while adding bm25 ranking.
-			yield* sql`CREATE VIRTUAL TABLE reference_search USING fts5(
-				name, domains, repo, notes,
-				tokenize = 'trigram'
-			)`;
-		}),
+const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
+
+export class Database extends Context.Service<Database>()("oracle/Database", {
+	make: Effect.gen(function* () {
+		const db = yield* LibsqlDrizzle.makeWithDefaults();
+		yield* migrate(db, { migrationsFolder });
+		return db;
 	}),
-});
+}) {}
 
-const withMigrations = (
-	layer: Layer.Layer<LibsqlClient.LibsqlClient | SqlClient.SqlClient>,
-) => Layer.effectDiscard(migrations).pipe(Layer.provideMerge(layer));
+const fromClient = (layer: Layer.Layer<LibsqlClient.LibsqlClient>) =>
+	Layer.effect(Database, Database.make).pipe(Layer.provide(layer));
 
-/** A migrated SQL client for a single URL: a local `file:` or a remote server, no replica. */
-export const sqlLayer = (options: {
+/** A migrated database for a single URL: a local `file:` or a remote server, no replica. */
+export const databaseAt = (options: {
 	url: string;
 	authToken?: Redacted.Redacted;
 }) =>
-	withMigrations(
+	fromClient(
 		LibsqlClient.layer({ url: options.url, authToken: options.authToken }),
 	);
 
@@ -117,7 +105,7 @@ export const DatabaseLayer = Layer.unwrap(
 			// Writing to a replica without its remote would fork it from the primary.
 			if (isReplica)
 				return yield* new ReplicaNeedsSyncUrl({ path: config.path });
-			return sqlLayer({ url: `file:${config.path}` });
+			return databaseAt({ url: `file:${config.path}` });
 		}
 		if (dbExists && !isReplica) {
 			return yield* new ReplicaNotInitialized({ path: config.path });
@@ -125,6 +113,6 @@ export const DatabaseLayer = Layer.unwrap(
 
 		const client = yield* openReplica(config, config.syncUrl.value);
 		yield* syncReplica(client, config.syncUrl.value);
-		return withMigrations(LibsqlClient.layer({ liveClient: client }));
+		return fromClient(LibsqlClient.layer({ liveClient: client }));
 	}),
 );

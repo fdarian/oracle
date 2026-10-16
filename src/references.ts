@@ -1,5 +1,9 @@
+import { and, asc, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { Context, Effect, Layer, Schema } from "effect";
-import { SqlClient } from "effect/sql";
+import { Database } from "#/database.ts";
+import { notes, references } from "#/db/schema.ts";
+import { referencesFts } from "#/db/search.ts";
 import { NoteEditFailed, NoteNotFound, ReferenceNotFound } from "#/errors.ts";
 
 const ReferenceNote = Schema.Struct({
@@ -21,35 +25,13 @@ export const ReferencesFile = Schema.Struct({
 });
 export type ReferencesFile = typeof ReferencesFile.Type;
 
-const Domains = Schema.fromJsonString(Schema.Array(Schema.String));
+type ReferenceRow = typeof references.$inferSelect;
 
-const ReferenceRow = Schema.Struct({
-	name: Schema.String,
-	repo: Schema.NullOr(Schema.String),
-	domains: Domains,
-});
-type ReferenceRow = typeof ReferenceRow.Type;
-
-const NoteRow = Schema.Struct({
-	reference_name: Schema.String,
-	path: Schema.String,
-	content: Schema.String,
-});
-
-const decodeReferenceRows = Schema.decodeUnknownEffect(
-	Schema.Array(ReferenceRow),
-);
-const decodeNoteRows = Schema.decodeUnknownEffect(Schema.Array(NoteRow));
-const encodeDomains = Schema.encodeEffect(Domains);
-const decodeNames = Schema.decodeUnknownEffect(
-	Schema.Array(Schema.Struct({ name: Schema.String })),
-);
-
-function toEntry(row: ReferenceRow, notes: ReadonlyArray<ReferenceNote>) {
+function toEntry(row: ReferenceRow, entryNotes: ReadonlyArray<ReferenceNote>) {
 	const entry: ReferenceEntry = {
 		domains: row.domains,
 		repo: row.repo === null ? undefined : row.repo,
-		notes,
+		notes: entryNotes,
 	};
 	return entry;
 }
@@ -63,8 +45,9 @@ function ftsPhrase(keyword: string) {
 	return `"${keyword.replaceAll('"', '""')}"`;
 }
 
-function likePattern(keyword: string) {
-	return `%${keyword.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+function containsIgnoringCase(column: SQLiteColumn, keyword: string): SQL {
+	const pattern = `%${keyword.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+	return sql`${column} LIKE ${pattern} ESCAPE '\\'`;
 }
 
 /** Trigram FTS5 can't MATCH fewer than three characters, so shorter keywords fall back to LIKE. */
@@ -74,27 +57,42 @@ export class ReferencesService extends Context.Service<ReferencesService>()(
 	"oracle/ReferencesService",
 	{
 		make: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
+			const db = yield* Database;
 
-			const reindex = (names: ReadonlyArray<string>) =>
+			const reindex = (ids: ReadonlyArray<number>) =>
 				Effect.gen(function* () {
-					yield* sql`DELETE FROM reference_search WHERE name IN ${sql.in(names)}`;
-					yield* sql`INSERT INTO reference_search (name, domains, repo, notes)
-						SELECT
-							r.name,
-							(SELECT group_concat(value, ' ') FROM json_each(r.domains)),
-							r.repo,
-							(SELECT group_concat(n.content, char(10)) FROM note n WHERE n.reference_name = r.name)
-						FROM reference r
-						WHERE r.name IN ${sql.in(names)}`;
+					yield* db
+						.delete(referencesFts)
+						.where(inArray(referencesFts.rowid, [...ids]));
+					yield* db
+						.insert(referencesFts, "rowid", "name", "domains", "repo", "notes")
+						.select(
+							db
+								.select({
+									rowid: references.id,
+									name: references.name,
+									domains:
+										sql<string>`(SELECT group_concat(value, ' ') FROM json_each(${references.domains}))`.as(
+											"domains",
+										),
+									repo: references.repo,
+									notes:
+										sql<string>`(SELECT group_concat(${notes.content}, char(10)) FROM ${notes} WHERE ${notes.referenceId} = ${references.id})`.as(
+											"notes",
+										),
+								})
+								.from(references)
+								.where(inArray(references.id, [...ids])),
+						);
 				});
 
 			const findReference = (name: string) =>
 				Effect.gen(function* () {
-					const rows =
-						yield* sql`SELECT name, repo, domains FROM reference WHERE name = ${name}`;
-					const decoded = yield* decodeReferenceRows(rows);
-					const row = decoded[0];
+					const row = yield* db
+						.select()
+						.from(references)
+						.where(eq(references.name, name))
+						.get();
 					if (row === undefined) {
 						return yield* new ReferenceNotFound({ name });
 					}
@@ -104,80 +102,113 @@ export class ReferencesService extends Context.Service<ReferencesService>()(
 			const loadEntry = (name: string) =>
 				Effect.gen(function* () {
 					const row = yield* findReference(name);
-					const noteRows =
-						yield* sql`SELECT reference_name, path, content FROM note WHERE reference_name = ${name} ORDER BY path`;
-					const notes = yield* decodeNoteRows(noteRows);
-					return toEntry(
-						row,
-						notes.map((note) => ({ path: note.path, content: note.content })),
-					);
+					const rows = yield* db
+						.select({ path: notes.path, content: notes.content })
+						.from(notes)
+						.where(eq(notes.referenceId, row.id))
+						.orderBy(asc(notes.path));
+					return toEntry(row, rows);
 				});
 
 			/** Splits `name/sub/path` at the longest reference name that prefixes it. */
 			const resolveNoteTarget = (fullPath: string) =>
 				Effect.gen(function* () {
-					const rows = yield* sql`SELECT name FROM reference
-						WHERE name = ${fullPath} OR substr(${fullPath}, 1, length(name) + 1) = name || '/'
-						ORDER BY length(name) DESC
-						LIMIT 1`;
-					const decoded = yield* decodeNames(rows);
-					const match = decoded[0];
+					const match = yield* db
+						.select({ id: references.id, name: references.name })
+						.from(references)
+						.where(
+							or(
+								eq(references.name, fullPath),
+								sql`substr(${fullPath}, 1, length(${references.name}) + 1) = ${references.name} || '/'`,
+							),
+						)
+						.orderBy(desc(sql`length(${references.name})`))
+						.get();
 					if (match === undefined) {
 						return yield* new ReferenceNotFound({ name: fullPath });
 					}
-					if (match.name === fullPath) return { name: match.name, path: "" };
-					return {
-						name: match.name,
-						path: fullPath.slice(match.name.length + 1),
-					};
+					const path =
+						match.name === fullPath
+							? ""
+							: fullPath.slice(match.name.length + 1);
+					return { id: match.id, name: match.name, path };
 				});
 
-			const findNote = (target: { name: string; path: string }) =>
+			const findNote = (target: { id: number; name: string; path: string }) =>
 				Effect.gen(function* () {
-					const rows =
-						yield* sql`SELECT reference_name, path, content FROM note WHERE reference_name = ${target.name}`;
-					const notes = yield* decodeNoteRows(rows);
-					const note = notes.find((note) => note.path === target.path);
+					const note = yield* db
+						.select({ content: notes.content })
+						.from(notes)
+						.where(
+							and(
+								eq(notes.referenceId, target.id),
+								eq(notes.path, target.path),
+							),
+						)
+						.get();
 					if (note === undefined) {
+						const available = yield* db
+							.select({ path: notes.path })
+							.from(notes)
+							.where(eq(notes.referenceId, target.id))
+							.orderBy(asc(notes.path));
 						return yield* new NoteNotFound({
 							name: target.name,
 							path: target.path,
-							available: notes.map((note) => note.path),
+							available: available.map((row) => row.path),
 						});
 					}
 					return note;
 				});
 
 			const saveNote = (
-				target: { name: string; path: string },
+				target: { id: number; name: string; path: string },
 				content: string,
 			) =>
 				Effect.gen(function* () {
-					yield* sql`INSERT INTO note (reference_name, path, content)
-						VALUES (${target.name}, ${target.path}, ${content})
-						ON CONFLICT (reference_name, path) DO UPDATE SET content = excluded.content`;
-					yield* reindex([target.name]);
+					yield* db
+						.insert(notes)
+						.values({ referenceId: target.id, path: target.path, content })
+						.onConflictDoUpdate({
+							target: [notes.referenceId, notes.path],
+							set: { content },
+						});
+					yield* reindex([target.id]);
 					return yield* loadEntry(target.name);
 				});
+
+			const transaction = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+				db.transaction(() => effect);
+
+			const searchColumns = {
+				name: references.name,
+				repo: references.repo,
+				domains: references.domains,
+			};
 
 			return {
 				search: (keyword: string) =>
 					Effect.gen(function* () {
+						const query = db
+							.select(searchColumns)
+							.from(referencesFts)
+							.innerJoin(references, eq(references.id, referencesFts.rowid));
 						const rows =
 							keyword.length >= minimumMatchLength
-								? yield* sql`SELECT r.name, r.repo, r.domains
-									FROM reference_search s JOIN reference r ON r.name = s.name
-									WHERE reference_search MATCH ${ftsPhrase(keyword)}
-									ORDER BY s.rank`
-								: yield* sql`SELECT r.name, r.repo, r.domains
-									FROM reference_search s JOIN reference r ON r.name = s.name
-									WHERE s.name LIKE ${likePattern(keyword)} ESCAPE '\\'
-										OR s.domains LIKE ${likePattern(keyword)} ESCAPE '\\'
-										OR s.repo LIKE ${likePattern(keyword)} ESCAPE '\\'
-										OR s.notes LIKE ${likePattern(keyword)} ESCAPE '\\'
-									ORDER BY r.name`;
-						const decoded = yield* decodeReferenceRows(rows);
-						return decoded.map((row) => ({
+								? yield* query
+										.where(sql`${referencesFts} MATCH ${ftsPhrase(keyword)}`)
+										.orderBy(asc(referencesFts.rank))
+								: yield* query
+										.where(
+											or(
+												containsIgnoringCase(referencesFts.name, keyword),
+												containsIgnoringCase(referencesFts.domains, keyword),
+												containsIgnoringCase(referencesFts.repo, keyword),
+												containsIgnoringCase(referencesFts.notes, keyword),
+											),
+										)
+										.orderBy(asc(references.name));
+						return rows.map((row) => ({
 							name: row.name,
 							repo: row.repo === null ? undefined : row.repo,
 							domains: row.domains,
@@ -187,15 +218,22 @@ export class ReferencesService extends Context.Service<ReferencesService>()(
 				get: loadEntry,
 
 				upsert: (name: string, entry: { domains: string[]; repo?: string }) =>
-					Effect.gen(function* () {
-						const domains = yield* encodeDomains(entry.domains);
-						const repo = entry.repo === undefined ? null : entry.repo;
-						yield* sql`INSERT INTO reference (name, repo, domains)
-							VALUES (${name}, ${repo}, ${domains})
-							ON CONFLICT (name) DO UPDATE SET repo = excluded.repo, domains = excluded.domains`;
-						yield* reindex([name]);
-						return yield* loadEntry(name);
-					}).pipe(sql.withTransaction),
+					transaction(
+						Effect.gen(function* () {
+							const repo = entry.repo === undefined ? null : entry.repo;
+							const row = yield* db
+								.insert(references)
+								.values({ name, repo, domains: entry.domains })
+								.onConflictDoUpdate({
+									target: references.name,
+									set: { repo, domains: entry.domains },
+								})
+								.returning({ id: references.id })
+								.get();
+							yield* reindex([row.id]);
+							return yield* loadEntry(name);
+						}),
+					),
 
 				readNote: (fullPath: string) =>
 					Effect.gen(function* () {
@@ -205,10 +243,12 @@ export class ReferencesService extends Context.Service<ReferencesService>()(
 					}),
 
 				writeNote: (fullPath: string, content: string) =>
-					Effect.gen(function* () {
-						const target = yield* resolveNoteTarget(fullPath);
-						return yield* saveNote(target, content);
-					}).pipe(sql.withTransaction),
+					transaction(
+						Effect.gen(function* () {
+							const target = yield* resolveNoteTarget(fullPath);
+							return yield* saveNote(target, content);
+						}),
+					),
 
 				editNote: (
 					fullPath: string,
@@ -216,87 +256,114 @@ export class ReferencesService extends Context.Service<ReferencesService>()(
 					newString: string,
 					replaceAll: boolean,
 				) =>
-					Effect.gen(function* () {
-						const target = yield* resolveNoteTarget(fullPath);
-						const note = yield* findNote(target);
-						const occurrences = countOccurrences(note.content, oldString);
-						if (occurrences === 0) {
-							return yield* new NoteEditFailed({
-								path: fullPath,
-								reason: "old_string not found",
-							});
-						}
-						if (!replaceAll && occurrences > 1) {
-							return yield* new NoteEditFailed({
-								path: fullPath,
-								reason:
-									"old_string is not unique; pass replace_all true to replace all occurrences",
-							});
-						}
-						const content = replaceAll
-							? note.content.replaceAll(oldString, newString)
-							: note.content.replace(oldString, newString);
-						return yield* saveNote(target, content);
-					}).pipe(sql.withTransaction),
+					transaction(
+						Effect.gen(function* () {
+							const target = yield* resolveNoteTarget(fullPath);
+							const note = yield* findNote(target);
+							const occurrences = countOccurrences(note.content, oldString);
+							if (occurrences === 0) {
+								return yield* new NoteEditFailed({
+									path: fullPath,
+									reason: "old_string not found",
+								});
+							}
+							if (!replaceAll && occurrences > 1) {
+								return yield* new NoteEditFailed({
+									path: fullPath,
+									reason:
+										"old_string is not unique; pass replace_all true to replace all occurrences",
+								});
+							}
+							const content = replaceAll
+								? note.content.replaceAll(oldString, newString)
+								: note.content.replace(oldString, newString);
+							return yield* saveNote(target, content);
+						}),
+					),
 
 				delete: (name: string) =>
-					Effect.gen(function* () {
-						yield* findReference(name);
-						yield* sql`DELETE FROM note WHERE reference_name = ${name}`;
-						yield* sql`DELETE FROM reference WHERE name = ${name}`;
-						yield* sql`DELETE FROM reference_search WHERE name = ${name}`;
-					}).pipe(sql.withTransaction),
+					transaction(
+						Effect.gen(function* () {
+							const row = yield* findReference(name);
+							yield* db.delete(notes).where(eq(notes.referenceId, row.id));
+							yield* db.delete(references).where(eq(references.id, row.id));
+							yield* db
+								.delete(referencesFts)
+								.where(eq(referencesFts.rowid, row.id));
+						}),
+					),
 
 				exportAll: Effect.gen(function* () {
-					const referenceRows =
-						yield* sql`SELECT name, repo, domains FROM reference ORDER BY name`;
-					const rows = yield* decodeReferenceRows(referenceRows);
-					const noteRows =
-						yield* sql`SELECT reference_name, path, content FROM note ORDER BY reference_name, path`;
-					const notes = yield* decodeNoteRows(noteRows);
-					const references: Record<string, ReferenceEntry> = {};
+					const rows = yield* db
+						.select()
+						.from(references)
+						.orderBy(asc(references.name));
+					const noteRows = yield* db
+						.select()
+						.from(notes)
+						.orderBy(asc(notes.path));
+					const fileReferences: Record<string, ReferenceEntry> = {};
 					for (const row of rows) {
-						references[row.name] = toEntry(
+						fileReferences[row.name] = toEntry(
 							row,
-							notes
-								.filter((note) => note.reference_name === row.name)
+							noteRows
+								.filter((note) => note.referenceId === row.id)
 								.map((note) => ({ path: note.path, content: note.content })),
 						);
 					}
-					const file: ReferencesFile = { references };
+					const file: ReferencesFile = { references: fileReferences };
 					return file;
 				}),
 
 				/** Upserts every reference in `file`, replacing its notes wholesale. */
 				importAll: (file: ReferencesFile) =>
-					Effect.gen(function* () {
-						const names = Object.keys(file.references);
-						if (names.length === 0) return 0;
-						const referenceRows = yield* Effect.forEach(
-							Object.entries(file.references),
-							(pair) =>
-								Effect.map(encodeDomains(pair[1].domains), (domains) => ({
-									name: pair[0],
-									repo: pair[1].repo === undefined ? null : pair[1].repo,
-									domains,
-								})),
-						);
-						const noteRows = Object.entries(file.references).flatMap((pair) =>
-							pair[1].notes.map((note) => ({
-								reference_name: pair[0],
-								path: note.path,
-								content: note.content,
-							})),
-						);
-						yield* sql`DELETE FROM note WHERE reference_name IN ${sql.in(names)}`;
-						yield* sql`INSERT INTO reference ${sql.insert(referenceRows)}
-							ON CONFLICT (name) DO UPDATE SET repo = excluded.repo, domains = excluded.domains`;
-						if (noteRows.length > 0) {
-							yield* sql`INSERT INTO note ${sql.insert(noteRows)}`;
-						}
-						yield* reindex(names);
-						return names.length;
-					}).pipe(sql.withTransaction),
+					transaction(
+						Effect.gen(function* () {
+							const entries = Object.entries(file.references);
+							if (entries.length === 0) return 0;
+							const rows = yield* db
+								.insert(references)
+								.values(
+									entries.map((pair) => ({
+										name: pair[0],
+										repo: pair[1].repo === undefined ? null : pair[1].repo,
+										domains: pair[1].domains,
+									})),
+								)
+								.onConflictDoUpdate({
+									target: references.name,
+									set: {
+										repo: sql`excluded.repo`,
+										domains: sql`excluded.domains`,
+									},
+								})
+								.returning({ id: references.id, name: references.name });
+							const ids = rows.map((row) => row.id);
+							const idByName = new Map(rows.map((row) => [row.name, row.id]));
+							yield* db.delete(notes).where(inArray(notes.referenceId, ids));
+							const noteRows: Array<typeof notes.$inferInsert> = [];
+							for (const pair of entries) {
+								const referenceId = idByName.get(pair[0]);
+								if (referenceId === undefined) {
+									return yield* Effect.die(
+										`upsert returned no id for reference ${pair[0]}`,
+									);
+								}
+								for (const note of pair[1].notes) {
+									noteRows.push({
+										referenceId,
+										path: note.path,
+										content: note.content,
+									});
+								}
+							}
+							if (noteRows.length > 0) {
+								yield* db.insert(notes).values(noteRows);
+							}
+							yield* reindex(ids);
+							return rows.length;
+						}),
+					),
 			};
 		}),
 	},
