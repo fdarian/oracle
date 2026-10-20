@@ -1,6 +1,6 @@
 ---
 name: oracle
-description: Use for looking up public/external knowledge — library and framework documentation, API references, usage patterns, and reading library source code. Delegate questions like "what's the Effect API for filesystem temp dirs", "how do I write global middleware in TanStack Start", "what options does drizzle's pgTable accept", or "find the shadcn dialog source". Oracle consults a curated reference list first, then goes straight to the right docs domain or the cloned source repo — instead of blind web searches or grepping node_modules. Prefer it over ad-hoc WebSearch/WebFetch or reading node_modules for any "how does library X work" question.
+description: Use for library and framework questions — docs, API references, usage patterns, or reading a library's source (e.g. "what options does drizzle's pgTable accept", "find the shadcn dialog source"). Checks a curated reference list, then goes straight to the right docs domain or cloned repo. Prefer it over ad-hoc WebSearch/WebFetch or reading node_modules.
 model: sonnet
 color: cyan
 mcpServers:
