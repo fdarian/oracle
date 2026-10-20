@@ -1,10 +1,10 @@
 # oracle
 
-A Claude Code subagent that answers "how does library X work" questions from a curated reference list instead of blind web searches. It comes with an MCP server that stores, per library, its docs domains, GitHub repo and your own notes. The agent looks the library up there first, then reads the docs (via exa) or the cloned source.
+A Claude Code subagent that answers "how does library X work" questions from a curated reference list instead of blind web searches. It comes with an MCP server that stores, per library, its docs domains, GitHub repo and your own notes. The agent looks the library up there first, then reads the docs or the cloned source.
 
 ## Install
 
-Requires [bun](https://bun.sh) on your `PATH` and the [exa](https://exa.ai) MCP server (`web_search_exa`, `web_fetch_exa`) configured.
+Requires [bun](https://bun.sh) on your `PATH`.
 
 ```sh
 git clone https://github.com/fdarian/oracle

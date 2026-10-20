@@ -1,4 +1,4 @@
-Stdio MCP server (`oracle`) holding a curated registry of library docs references (docs domains, GitHub repo, markdown notes), plus an `oracle` Claude Code subagent that consults it before searching docs via exa or reading cloned source.
+Stdio MCP server (`oracle`) holding a curated registry of library docs references (docs domains, GitHub repo, markdown notes), plus an `oracle` Claude Code subagent that consults it before searching docs or reading cloned source.
 
 ## Stack
 
