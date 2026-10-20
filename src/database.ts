@@ -1,8 +1,7 @@
-import { fileURLToPath } from "node:url";
 import { LibsqlClient } from "@effect/sql-libsql";
 import { type Client, createClient } from "@libsql/client";
+import { applyEmbeddedMigrations } from "deskkit/sqlite";
 import * as LibsqlDrizzle from "drizzle-orm/effect-libsql";
-import { migrate } from "drizzle-orm/effect-libsql/migrator";
 import {
 	Config,
 	Context,
@@ -19,6 +18,7 @@ import {
 	ReplicaNotInitialized,
 	SyncFailed,
 } from "#/errors.ts";
+import migrationBundle from "../.gen/migrations.gen.ts";
 
 export const DatabaseConfig = Effect.gen(function* () {
 	const path = yield* Config.String("ORACLE_DB_PATH").pipe(
@@ -33,12 +33,10 @@ export const DatabaseConfig = Effect.gen(function* () {
 export const replicaIndexPath = (dbPath: string) =>
 	`${dbPath}-client_wal_index`;
 
-const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
-
 export class Database extends Context.Service<Database>()("oracle/Database", {
 	make: Effect.gen(function* () {
 		const db = yield* LibsqlDrizzle.makeWithDefaults();
-		yield* migrate(db, { migrationsFolder });
+		yield* applyEmbeddedMigrations(db, migrationBundle);
 		return db;
 	}),
 }) {}

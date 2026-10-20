@@ -7,14 +7,17 @@
 		"check:type": "tsc --noEmit",
 		"check:lint": "biome check",
 		"format": "biome check --write",
-		"db:generate": "drizzle-kit generate"
+		"db:generate": "drizzle-kit generate && deskkit gen-migrations",
+		"build": "bun run scripts/build.ts"
 	},
 	"dependencies": {
 		"@effect/platform-bun": "4.0.5",
 		"@effect/sql-libsql": "4.0.5",
+		"@effect/sql-sqlite-bun": "4.0.5",
 		"@libsql/client": "^0.18.0",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"@toon-format/toon": "^2.3.0",
+		"deskkit": "github:fdarian/deskkit",
 		"drizzle-orm": "1.0.0-rc.5-5935859",
 		"effect": "4.0.5",
 		"zod": "^3.24.0"
@@ -22,6 +25,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.5.1",
 		"@total-typescript/tsconfig": "^1.0.4",
+		"@types/bun": "^1.4.3",
 		"@types/node": "^25.9.3",
 		"drizzle-kit": "1.0.0-rc.5-5935859",
 		"typescript": "^7.0.2"

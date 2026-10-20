@@ -172,6 +172,9 @@ importers:
       '@effect/sql-libsql':
         specifier: 4.0.5
         version: 4.0.5(effect@4.0.5)
+      '@effect/sql-sqlite-bun':
+        specifier: 4.0.5
+        version: 4.0.5(effect@4.0.5)
       '@libsql/client':
         specifier: ^0.18.0
         version: 0.18.0
@@ -181,9 +184,12 @@ importers:
       '@toon-format/toon':
         specifier: ^2.3.0
         version: 2.3.1
+      deskkit:
+        specifier: github:fdarian/deskkit
+        version: https://codeload.github.com/fdarian/deskkit/tar.gz/06f649d0103484007679dccf2b71aa4b21b7d2ce(@effect/platform-bun@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(drizzle-orm@1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(bun-types@1.4.3)(effect@4.0.5)(zod@3.25.76))(effect@4.0.5)
       drizzle-orm:
         specifier: 1.0.0-rc.5-5935859
-        version: 1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(effect@4.0.5)(zod@3.25.76)
+        version: 1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(bun-types@1.4.3)(effect@4.0.5)(zod@3.25.76)
       effect:
         specifier: 4.0.5
         version: 4.0.5
@@ -197,6 +203,9 @@ importers:
       '@total-typescript/tsconfig':
         specifier: ^1.0.4
         version: 1.0.4
+      '@types/bun':
+        specifier: ^1.4.3
+        version: 1.4.3
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.9
@@ -282,6 +291,11 @@ packages:
 
   '@effect/sql-libsql@4.0.5':
     resolution: {integrity: sha512-mIRjee4/gqYktnqdMKSR8AHX2gcYPhN1t3GCOY8P4qwQbjiXOjKKAD6sX4PkzuOrsdMxB81gva0FEAGQL36tDA==}
+    peerDependencies:
+      effect: ^4.0.5
+
+  '@effect/sql-sqlite-bun@4.0.5':
+    resolution: {integrity: sha512-gL6mOT/BPM/AOWzcHhFphv6092zpgbJC79j29vfORakJ2ZLE/p+Eah9DeahokI6WBOk7AqFcaXsKVnjJBTUNXw==}
     peerDependencies:
       effect: ^4.0.5
 
@@ -527,6 +541,9 @@ packages:
   '@total-typescript/tsconfig@1.0.4':
     resolution: {integrity: sha512-fO4ctMPGz1kOFOQ4RCPBRBfMy3gDn+pegUfrGyUFRMv/Rd0ZM3/SHH3hFCYG4u6bPLG8OlmOGcBLDexvyr3A5w==}
 
+  '@types/bun@1.4.3':
+    resolution: {integrity: sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw==}
+
   '@types/node@25.9.9':
     resolution: {integrity: sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w==}
 
@@ -667,6 +684,9 @@ packages:
     resolution: {integrity: sha512-2cGmJupaNgg+QUwVLAucDuWuoMZ6EX9iHDRswZ5lsNYEmwPaRknMPCLZz07yTzVq/83p4o/wzbDZbBrTvGGTIw==}
     engines: {node: '>=18'}
 
+  bun-types@1.4.3:
+    resolution: {integrity: sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg==}
+
   bytes@3.1.2:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
     engines: {node: '>= 0.8'}
@@ -719,6 +739,21 @@ packages:
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
     engines: {node: '>= 0.8'}
+
+  deskkit@https://codeload.github.com/fdarian/deskkit/tar.gz/06f649d0103484007679dccf2b71aa4b21b7d2ce:
+    resolution: {gitHosted: true, integrity: sha512-3qZFvS0uVgCSNzANIHuDM51qF+r+4n8kEUtyhH7/YSl7y14v8zt6POxLHzGqH2fW0h7rV2TnCzAUxKj/LMNuXg==, tarball: https://codeload.github.com/fdarian/deskkit/tar.gz/06f649d0103484007679dccf2b71aa4b21b7d2ce}
+    version: 0.1.0
+    hasBin: true
+    peerDependencies:
+      '@effect/platform-bun': ^4.0.5
+      '@effect/sql-sqlite-bun': ^4.0.5
+      drizzle-orm: ^1.0.0-rc.5
+      effect: ^4.0.5
+    peerDependenciesMeta:
+      '@effect/sql-sqlite-bun':
+        optional: true
+      drizzle-orm:
+        optional: true
 
   detect-libc@2.0.2:
     resolution: {integrity: sha512-UX6sGumvvqSaXgdKGUsgZWqcUyIXZ/vZTrlRT/iobiKhGL0zL4d3osHj3uqllWJK+i+sixDS/3COVEOFbupFyw==}
@@ -1275,6 +1310,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@effect/sql-sqlite-bun@4.0.5(effect@4.0.5)':
+    dependencies:
+      effect: 4.0.5
+
   '@esbuild/aix-ppc64@0.25.12':
     optional: true
 
@@ -1447,6 +1486,10 @@ snapshots:
 
   '@total-typescript/tsconfig@1.0.4': {}
 
+  '@types/bun@1.4.3':
+    dependencies:
+      bun-types: 1.4.3
+
   '@types/node@25.9.9':
     dependencies:
       undici-types: 7.24.6
@@ -1545,6 +1588,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  bun-types@1.4.3:
+    dependencies:
+      '@types/node': 25.9.9
+      undici-types: 7.24.6
+
   bytes@3.1.2: {}
 
   call-bind-apply-helpers@1.0.2:
@@ -1584,6 +1632,14 @@ snapshots:
 
   depd@2.0.0: {}
 
+  deskkit@https://codeload.github.com/fdarian/deskkit/tar.gz/06f649d0103484007679dccf2b71aa4b21b7d2ce(@effect/platform-bun@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(drizzle-orm@1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(bun-types@1.4.3)(effect@4.0.5)(zod@3.25.76))(effect@4.0.5):
+    dependencies:
+      '@effect/platform-bun': 4.0.5(effect@4.0.5)
+      effect: 4.0.5
+    optionalDependencies:
+      '@effect/sql-sqlite-bun': 4.0.5(effect@4.0.5)
+      drizzle-orm: 1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(bun-types@1.4.3)(effect@4.0.5)(zod@3.25.76)
+
   detect-libc@2.0.2: {}
 
   drizzle-kit@1.0.0-rc.5-5935859:
@@ -1594,10 +1650,12 @@ snapshots:
       get-tsconfig: 4.14.3
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(effect@4.0.5)(zod@3.25.76):
+  drizzle-orm@1.0.0-rc.5-5935859(@effect/sql-libsql@4.0.5(effect@4.0.5))(@effect/sql-sqlite-bun@4.0.5(effect@4.0.5))(@libsql/client@0.18.0)(bun-types@1.4.3)(effect@4.0.5)(zod@3.25.76):
     optionalDependencies:
       '@effect/sql-libsql': 4.0.5(effect@4.0.5)
+      '@effect/sql-sqlite-bun': 4.0.5(effect@4.0.5)
       '@libsql/client': 0.18.0
+      bun-types: 1.4.3
       effect: 4.0.5
       zod: 3.25.76
 
