@@ -6,8 +6,8 @@ color: cyan
 mcpServers:
   - oracle:
       type: stdio
-      command: bun
-      args: ["run", "/path/to/oracle/entries/cli.ts", "mcp", "stdio"]
+      command: oracle
+      args: ["mcp", "stdio"]
       env:
         ORACLE_DB_PATH: "/path/to/oracle.db"
 ---

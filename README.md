@@ -4,18 +4,19 @@ A Claude Code subagent that answers "how does library X work" questions from a c
 
 ## Install
 
-Requires [bun](https://bun.sh) on your `PATH`.
+Install the `oracle` binary with [mise](https://mise.jdx.dev):
 
 ```sh
-git clone https://github.com/fdarian/oracle
-cd oracle && pnpm install
-cp agents/oracle.md ~/.claude/agents/oracle.md
+mise use -g github:fdarian/oracle
 ```
 
-Then edit `~/.claude/agents/oracle.md` and replace the two placeholder paths in the `mcpServers` frontmatter with absolute paths:
+Then copy the agent into place:
 
-- `/path/to/oracle` — your clone
-- `/path/to/oracle.db` — where your reference list is stored, a SQLite file created on first run
+```sh
+curl -fsSL https://raw.githubusercontent.com/fdarian/oracle/main/agents/oracle.md -o ~/.claude/agents/oracle.md
+```
+
+Edit `~/.claude/agents/oracle.md` and replace the placeholder `ORACLE_DB_PATH` in the `mcpServers` frontmatter with an absolute path, where your reference list is stored. It's a SQLite file created on first run.
 
 Restart Claude Code.
 
@@ -34,7 +35,7 @@ The database is local-only by default. To share it between machines, point it at
    ```
 2. On the machine that already has data, copy it to the server once, with the same three variables set in your shell:
    ```sh
-   bun run entries/cli.ts sync enable
+   oracle sync enable
    ```
    This uploads every reference, moves the local file to `oracle.db.bak`, and replaces it with a synced replica.
 3. On other machines, set the same variables with any `ORACLE_DB_PATH`. The replica fills itself from the server on first start.
@@ -56,7 +57,7 @@ Reads are local and each agent run pulls the latest state on start. Writes go to
 Earlier versions stored the list in a JSON file. Import it once:
 
 ```sh
-ORACLE_DB_PATH=/path/to/oracle.db bun run entries/cli.ts import /path/to/references.json
+ORACLE_DB_PATH=/path/to/oracle.db oracle import /path/to/references.json
 ```
 
 Existing references with the same name are replaced.
@@ -65,10 +66,14 @@ Existing references with the same name are replaced.
 
 ## Development
 
+Needs [bun](https://bun.sh) and pnpm.
+
 ```sh
+pnpm install
 pnpm format        # biome
 pnpm check:type
 pnpm check:lint
+pnpm build         # compiles dist/oracle for the current platform
 ```
 
 See [AGENTS.md](./AGENTS.md) for the layout.
