@@ -1,0 +1,16 @@
+name: Setup
+description: Node, pnpm (with frozen-lockfile install) and Bun
+
+inputs:
+  cache:
+    description: Cache the pnpm store. Keep it off in release workflows.
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with: { node-version: "26", package-manager-cache: false }
+    - uses: pnpm/setup@v3
+      with: { cache: "${{ inputs.cache }}", require-lockfile: true }
+    - uses: oven-sh/setup-bun@v2

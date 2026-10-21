@@ -1,14 +1,16 @@
 {
 	"name": "oracle",
-	"version": "0.1.0",
+	"version": "0.0.0",
 	"private": true,
 	"packageManager": "pnpm@12.9.0",
 	"scripts": {
 		"check:type": "tsrs --noEmit",
-		"check:lint": "biome check",
+		"check:lint": "biome lint .",
 		"format": "biome check --write",
 		"db:generate": "drizzle-kit generate && deskkit gen-migrations",
-		"build": "bun run scripts/build.ts"
+		"build": "bun run scripts/build.ts",
+		"ci:version": "changeset version && pnpm install --lockfile-only",
+		"ci:release": "changeset publish"
 	},
 	"dependencies": {
 		"@effect/platform-bun": "4.0.5",
@@ -24,6 +26,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.1",
+		"@changesets/cli": "^3.0.3",
 		"@total-typescript/tsconfig": "^1.0.4",
 		"@types/bun": "^1.4.3",
 		"@types/node": "^25.9.3",

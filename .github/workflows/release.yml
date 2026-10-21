@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".changeset/**"]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      version: ${{ fromJSON(steps.changesets.outputs.published-packages || '[{}]')[0].version }}
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      - uses: ./.github/actions/setup
+        with: { cache: false }
+      - id: changesets
+        uses: changesets/action@v2
+        with:
+          version-script: pnpm ci:version
+          publish-script: pnpm ci:release
+          create-github-releases: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Native libsql addons can't be cross-compiled (see scripts/build.ts), so each
+  # target builds on its own runner. Same workflow rather than `on: release`,
+  # because releases created with GITHUB_TOKEN don't trigger other workflows.
+  binaries:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-15, target: darwin-arm64 }
+          - { runner: ubuntu-24.04, target: linux-x64 }
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup
+        with: { cache: false }
+      - run: pnpm build
+      - run: tar -czf "oracle-${TARGET}.tar.gz" -C dist oracle
+        env:
+          TARGET: ${{ matrix.target }}
+      - run: gh release upload "v${VERSION}" "oracle-${TARGET}.tar.gz" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
+          TARGET: ${{ matrix.target }}
